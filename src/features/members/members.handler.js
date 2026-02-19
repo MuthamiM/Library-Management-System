@@ -1,5 +1,5 @@
 /** Feature: Members — full CRUD + borrowed books */
-import { json, errorResponse } from '../../shared/utils.js';
+import { json, errorResponse, hashPassword } from '../../shared/utils.js';
 
 export async function handleMembers(request, env, path, method) {
     const db = env.DB;
@@ -58,9 +58,14 @@ export async function handleMembers(request, env, path, method) {
     if (path === '/api/members' && method === 'POST') {
         const m = await request.json().catch(() => ({}));
         if (!m.name || !m.member_id) return errorResponse('Name and member_id are required');
+
+        // Default password is phone number
+        const password = m.phone || 'member123';
+        const hashedPassword = await hashPassword(password);
+
         const r = await db.prepare(
-            `INSERT INTO members (member_id,name,email,phone,photo) VALUES (?,?,?,?,?)`
-        ).bind(m.member_id, m.name, m.email || '', m.phone || '', m.photo || '').run();
+            `INSERT INTO members (member_id,name,email,phone,photo,password_hash) VALUES (?,?,?,?,?,?)`
+        ).bind(m.member_id, m.name, m.email || '', m.phone || '', m.photo || '', hashedPassword).run();
         return json({ id: r.meta.last_row_id, ...m }, 201);
     }
 

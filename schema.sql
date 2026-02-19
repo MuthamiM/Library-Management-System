@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS members (
   email TEXT,
   phone TEXT,
   photo TEXT DEFAULT '',
+  password_hash TEXT, -- New: for member login
   joined_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 

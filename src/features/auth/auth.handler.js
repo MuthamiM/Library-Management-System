@@ -7,9 +7,22 @@ export async function handleAuth(request, env, path, method) {
     // POST /api/auth/login
     if (path === '/api/auth/login' && method === 'POST') {
         const { email, password } = await request.json().catch(() => ({}));
-        if (!email || !password) return errorResponse('Email and password required');
+        if (!email || !password) return errorResponse('ID/Email and password required');
 
-        const user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+        // 1. Try Librarian (users table)
+        let user = await env.DB.prepare('SELECT * FROM users WHERE email = ?').bind(email).first();
+        let role = user ? user.role : null;
+        let isMember = false;
+
+        // 2. Try Member (members table)
+        if (!user) {
+            user = await env.DB.prepare('SELECT * FROM members WHERE member_id = ?').bind(email).first();
+            if (user) {
+                role = 'member';
+                isMember = true;
+            }
+        }
+
         if (!user) return errorResponse('Invalid credentials', 401);
 
         const valid = await verifyPassword(password, user.password_hash);
@@ -17,12 +30,12 @@ export async function handleAuth(request, env, path, method) {
 
         const token = await signJWT(
             {
-                sub: user.id, name: user.name, email: user.email, role: user.role,
+                sub: user.id, name: user.name, email: isMember ? user.member_id : user.email, role: role,
                 exp: Math.floor(Date.now() / 1000) + 86400
             },
             JWT_SECRET
         );
-        return json({ token, user: { id: user.id, name: user.name, email: user.email, role: user.role, avatar: user.avatar } });
+        return json({ token, user: { id: user.id, name: user.name, email: isMember ? user.member_id : user.email, role: role, avatar: user.avatar || user.photo || '' } });
     }
 
     // GET /api/auth/me

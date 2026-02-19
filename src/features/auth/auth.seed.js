@@ -60,7 +60,9 @@ export async function seedDatabase(env) {
             ['21344127', 'NADIA Cherif', 'nadia.c@email.com', '+213 555 0105', ''],
         ];
         for (const m of MEMBERS) {
-            batch.push(db.prepare(`INSERT OR IGNORE INTO members (member_id,name,email,phone,photo) VALUES (?,?,?,?,?)`).bind(...m));
+            const password = m[3] || 'member123';
+            const hashed = await hashPassword(password);
+            batch.push(db.prepare(`INSERT OR IGNORE INTO members (member_id,name,email,phone,photo,password_hash) VALUES (?,?,?,?,?,?)`).bind(...m, hashed));
         }
 
         // Books

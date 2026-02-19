@@ -76,8 +76,8 @@ export function initShell(activeId = 'dashboard') {
     <div class="sidebar__profile">
       ${profileImg}
       <div class="sidebar__profile-info">
-        <div class="name">${user.name || 'Librarian'}</div>
-        <div class="role">${user.role || 'librarian'}</div>
+        <div class="name" style="text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${user.name || 'User'}</div>
+        <div class="role">${(user.role || 'member').charAt(0).toUpperCase() + (user.role || 'member').slice(1)}</div>
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
     </div>

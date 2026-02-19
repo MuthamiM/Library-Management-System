@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -7,32 +8,94 @@
   <meta name="description" content="Login to EZRAlms Library Management System">
   <link rel="stylesheet" href="/css/global.css">
   <style>
-    body { display: flex; align-items: center; justify-content: center; min-height: 100vh; background: var(--bg); }
-    .login-card {
-      background: #fff; border-radius: 20px; padding: 48px;
-      width: 100%; max-width: 400px;
-      box-shadow: var(--shadow-lg); border: 1px solid var(--border);
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      background: var(--bg);
     }
-    .login-logo { text-align: center; margin-bottom: 12px; }
-    .login-logo svg { width: 60px; height: 60px; }
-    .login-title { text-align: center; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-    .login-sub { text-align: center; color: var(--text-sec); font-size: 14px; margin-bottom: 32px; }
-    .login-form .form-group { margin-bottom: 18px; }
-    .btn-login { width: 100%; padding: 14px; font-size: 16px; justify-content: center; }
-    .login-hint { margin-top: 20px; text-align: center; font-size: 12px; color: var(--text-muted); }
-    .login-hint strong { color: var(--accent); }
-    .error-msg { background: #FEE2E2; color: var(--red); border-radius: var(--radius-sm); padding: 10px 14px; font-size: 13px; margin-bottom: 16px; display: none; }
-    .error-msg.show { display: block; }
+
+    .login-card {
+      background: #fff;
+      border-radius: 20px;
+      padding: 48px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+      border: 1px solid var(--border);
+    }
+
+    .login-logo {
+      text-align: center;
+      margin-bottom: 12px;
+    }
+
+    .login-logo svg {
+      width: 60px;
+      height: 60px;
+    }
+
+    .login-title {
+      text-align: center;
+      font-size: 22px;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .login-sub {
+      text-align: center;
+      color: var(--text-sec);
+      font-size: 14px;
+      margin-bottom: 32px;
+    }
+
+    .login-form .form-group {
+      margin-bottom: 18px;
+    }
+
+    .btn-login {
+      width: 100%;
+      padding: 14px;
+      font-size: 16px;
+      justify-content: center;
+    }
+
+    .login-hint {
+      margin-top: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .login-hint strong {
+      color: var(--accent);
+    }
+
+    .error-msg {
+      background: #FEE2E2;
+      color: var(--red);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 16px;
+      display: none;
+    }
+
+    .error-msg.show {
+      display: block;
+    }
   </style>
 </head>
+
 <body>
   <div class="login-card">
     <div class="login-logo">
       <svg viewBox="0 0 60 60" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="60" height="60" rx="16" fill="#FF6B35"/>
-        <path d="M15 18h20a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H15V18z" fill="white" opacity=".9"/>
-        <path d="M35 18h4a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4h-4V18z" fill="white" opacity=".5"/>
-        <path d="M21 26h12M21 31h12M21 36h8" stroke="#FF6B35" stroke-width="2" stroke-linecap="round"/>
+        <rect width="60" height="60" rx="16" fill="#FF6B35" />
+        <path d="M15 18h20a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4H15V18z" fill="white" opacity=".9" />
+        <path d="M35 18h4a4 4 0 0 1 4 4v20a4 4 0 0 1-4 4h-4V18z" fill="white" opacity=".5" />
+        <path d="M21 26h12M21 31h12M21 36h8" stroke="#FF6B35" stroke-width="2" stroke-linecap="round" />
       </svg>
     </div>
     <h1 class="login-title">EZRAlms</h1>
@@ -40,16 +103,21 @@
     <div class="error-msg" id="error-msg"></div>
     <form class="login-form" id="login-form">
       <div class="form-group">
-        <label class="form-label" for="email">Email Address</label>
-        <input type="email" id="email" placeholder="librarian@ezr.com" required autocomplete="email">
+        <label class="form-label" for="email">Email or Member ID</label>
+        <input type="text" id="email" placeholder="e.g. librarian@ezr.com or 21344123" required autocomplete="username">
       </div>
       <div class="form-group">
         <label class="form-label" for="password">Password</label>
+        <div style="font-size: 11px; color: var(--text-muted); margin-bottom: 4px;">Members: Use your recorded phone
+          number</div>
         <input type="password" id="password" placeholder="••••••••" required autocomplete="current-password">
       </div>
       <button type="submit" id="login-btn" class="btn btn-primary btn-login">Sign In</button>
     </form>
-    <p class="login-hint">Demo: <strong>librarian@ezr.com</strong> / <strong>admin123</strong></p>
+    <div class="login-hint">
+      <strong>Librarian:</strong> librarian@ezr.com / admin123<br>
+      <strong>Member:</strong> 21344123 / +213 555 0101
+    </div>
   </div>
   <div id="toast-container" class="toast-container"></div>
   <script type="module">
@@ -57,7 +125,7 @@
 
     // Seed DB on first visit
     async function ensureSeeded() {
-      try { await api.seed(); } catch (_) {}
+      try { await api.seed(); } catch (_) { }
     }
     ensureSeeded();
 
@@ -88,4 +156,5 @@
     });
   </script>
 </body>
+
 </html>
