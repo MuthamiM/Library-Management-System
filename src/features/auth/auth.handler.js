@@ -43,8 +43,15 @@ export async function handleAuth(request, env, path, method) {
         const { verifyToken } = await import('../../shared/auth.middleware.js');
         const auth = await verifyToken(request, env);
         if (!auth.ok) return errorResponse(auth.error, 401);
-        const user = await env.DB.prepare('SELECT id,name,email,role,avatar FROM users WHERE id=?')
-            .bind(auth.user.sub).first();
+
+        let user;
+        if (auth.user.role === 'member') {
+            user = await env.DB.prepare("SELECT id,name,member_id as email, 'member' as role, photo as avatar FROM members WHERE id=?")
+                .bind(auth.user.sub).first();
+        } else {
+            user = await env.DB.prepare('SELECT id,name,email,role,avatar FROM users WHERE id=?')
+                .bind(auth.user.sub).first();
+        }
         return user ? json(user) : errorResponse('Not found', 404);
     }
 

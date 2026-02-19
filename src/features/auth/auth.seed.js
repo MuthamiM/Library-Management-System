@@ -43,6 +43,10 @@ export async function seedDatabase(env) {
             );
         `);
 
+        // Clear all existing data to ensure correct hashes and fresh state
+        console.log('[Seed] Clearing existing data...');
+        await db.exec('DELETE FROM loans; DELETE FROM books; DELETE FROM members; DELETE FROM visitors; DELETE FROM users;');
+
         // ── Data Preparation ──────────────────────────────────────────
         const ph = await hashPassword('admin123');
         const batch = [];
@@ -62,7 +66,7 @@ export async function seedDatabase(env) {
         for (const m of MEMBERS) {
             const password = m[3] || 'member123';
             const hashed = await hashPassword(password);
-            batch.push(db.prepare(`INSERT OR IGNORE INTO members (member_id,name,email,phone,photo,password_hash) VALUES (?,?,?,?,?,?)`).bind(...m, hashed));
+            batch.push(db.prepare(`INSERT OR REPLACE INTO members (member_id,name,email,phone,photo,password_hash) VALUES (?,?,?,?,?,?)`).bind(...m, hashed));
         }
 
         // Books

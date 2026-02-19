@@ -59,9 +59,14 @@ export async function verifyJWT(token, secret) {
 
 // ── Password (SHA-256) ──────────────────────────────────────────────
 
+const hex = (buf) =>
+    Array.from(new Uint8Array(buf))
+        .map(b => b.toString(16).padStart(2, '0'))
+        .join('');
+
 export async function hashPassword(password) {
     const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(password));
-    return b64url(buf);
+    return hex(buf);
 }
 
 export async function verifyPassword(password, hash) {
