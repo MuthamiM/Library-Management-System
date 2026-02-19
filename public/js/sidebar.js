@@ -15,7 +15,7 @@ const NAV_ITEMS = [
 ];
 
 const FOOTER_ITEMS = [
-  { id: 'help', label: 'help', icon: helpIcon, href: '#' },
+  { id: 'help', label: 'help', icon: helpIcon, href: '/help.html' },
   { id: 'settings', label: 'Settings', icon: settingsIcon, href: '/settings.html' },
 ];
 
