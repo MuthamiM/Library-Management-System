@@ -222,6 +222,13 @@
         import { api, showToast } from '/js/api.js';
         import { initShell } from '/js/sidebar.js';
         initShell('books');
+        const user = getUser();
+        const isLib = user.role === 'librarian';
+
+        // Hide administrative controls if not librarian
+        if (!isLib) {
+            document.getElementById('add-book-btn').style.display = 'none';
+        }
 
         let currentPage = 1;
         let deleteId = null;
@@ -255,10 +262,11 @@
               <span class="badge badge-blue">${b.category}</span>
               <div class="book-card__copies"><strong>${b.available_copies}</strong>/${b.total_copies}</div>
             </div>
+            ${isLib ? `
             <div class="book-card__actions" style="margin-top:10px;">
               <button class="edit-btn" onclick="event.stopPropagation(); window._editBook(${b.id})">Edit</button>
               <button class="del-btn" onclick="event.stopPropagation(); window._deleteBook(${b.id})">Delete</button>
-            </div>
+            </div>` : ''}
           </div>
         </div>`).join('');
         }

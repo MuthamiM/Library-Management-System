@@ -82,7 +82,7 @@ export function initShell(activeId = 'dashboard') {
       </div>
     </div>
     <nav class="sidebar__nav">
-      ${NAV_ITEMS.map(n => `
+      ${NAV_ITEMS.filter(n => user.role === 'librarian' || n.id !== 'members').map(n => `
         <a href="${n.href}" class="${n.id === activeId ? 'active' : ''}" id="nav-${n.id}">
           ${n.icon()} ${n.label}
         </a>`).join('')}

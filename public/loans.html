@@ -177,6 +177,12 @@
         import { api, showToast } from '/js/api.js';
         import { initShell } from '/js/sidebar.js';
         initShell('loans');
+        const user = getUser();
+        const isLib = user.role === 'librarian';
+
+        if (!isLib) {
+            document.getElementById('new-loan-btn').style.display = 'none';
+        }
 
         let currentPage = 1, currentStatus = '';
         const urlParams = new URLSearchParams(window.location.search);
@@ -234,7 +240,7 @@
           <td>${fmtDate(l.borrowed_at)}</td>
           <td>${fmtDate(l.due_date)}</td>
           <td><span class="badge ${statusClass}">${l.status}</span></td>
-          <td>${l.status !== 'returned' ? `<button class="return-btn" data-id="${l.id}">Return</button>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+          <td>${isLib && l.status !== 'returned' ? `<button class="return-btn" data-id="${l.id}">Return</button>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
         </tr>`;
             }).join('');
 

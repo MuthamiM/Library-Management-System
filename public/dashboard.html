@@ -407,10 +407,20 @@
     <div id="toast-container" class="toast-container"></div>
 
     <script type="module">
-        import { api, showToast } from '/js/api.js';
+        import { api, showToast, getUser } from '/js/api.js';
         import { initShell } from '/js/sidebar.js';
 
         initShell('dashboard');
+
+        const user = getUser();
+        const isLib = user.role === 'librarian';
+
+        // Hide administrative controls if not librarian
+        if (!isLib) {
+            document.getElementById('qr-panel').style.display = 'none';
+            document.querySelectorAll('.stat-card')[3].style.display = 'none'; // New Members card
+            document.querySelector('.stats-row').style.gridTemplateColumns = 'repeat(3, 1fr)';
+        }
 
         // ── Load stats ──────────────────────────────
         async function loadStats() {

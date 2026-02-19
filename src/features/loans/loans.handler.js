@@ -1,5 +1,6 @@
 /** Feature: Loans — borrow, return, overdue, history */
 import { json, errorResponse } from '../../shared/utils.js';
+import { verifyToken } from '../../shared/auth.middleware.js';
 
 export async function handleLoans(request, env, path, method) {
     const db = env.DB;
@@ -36,8 +37,11 @@ export async function handleLoans(request, env, path, method) {
         return json(results);
     }
 
-    // GET /api/loans — all loans (paginated)
+    // GET /api/loans — all loans (paginated or filtered)
     if (path === '/api/loans' && method === 'GET') {
+        const auth = await verifyToken(request, env);
+        if (!auth.ok) return errorResponse(auth.error, 401);
+
         const page = Math.max(1, parseInt(url.searchParams.get('page') || '1'));
         const limit = parseInt(url.searchParams.get('limit') || '20');
         const offset = (page - 1) * limit;
@@ -48,13 +52,35 @@ export async function handleLoans(request, env, path, method) {
               FROM loans l
               JOIN members m ON m.id=l.member_id
               JOIN books   b ON b.id=l.book_id`;
+
         const params = [];
-        if (status) { q += ` WHERE l.status=?`; params.push(status); }
+        const conditions = [];
+
+        if (status) { conditions.push(`l.status=?`); params.push(status); }
+
+        // Filter by member if the user is a member
+        if (auth.user.role === 'member') {
+            conditions.push(`m.id=?`);
+            params.push(auth.user.sub);
+        }
+
+        if (conditions.length) {
+            q += ` WHERE ` + conditions.join(' AND ');
+        }
+
         q += ` ORDER BY l.borrowed_at DESC LIMIT ? OFFSET ?`;
         params.push(limit, offset);
 
         const { results } = await db.prepare(q).bind(...params).all();
-        const { n } = await db.prepare('SELECT COUNT(*) as n FROM loans').first();
+
+        let countQ = 'SELECT COUNT(*) as n FROM loans l JOIN members m ON m.id=l.member_id';
+        const countParams = [];
+        const countConditions = [];
+        if (status) { countConditions.push(`l.status=?`); countParams.push(status); }
+        if (auth.user.role === 'member') { countConditions.push(`m.id=?`); countParams.push(auth.user.sub); }
+        if (countConditions.length) countQ += ` WHERE ` + countConditions.join(' AND ');
+
+        const { n } = await db.prepare(countQ).bind(...countParams).first();
         return json({ loans: results, total: n, page, limit });
     }
 
