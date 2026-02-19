@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EZRAlms — Books</title>
+    <meta name="description" content="EZRAlms Book Catalog – browse, search and manage library books">
+    <link rel="stylesheet" href="/css/global.css">
+    <style>
+        .books-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 20px;
+        }
+
+        .book-card {
+            background: var(--card-bg);
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+            transition: transform var(--transition), box-shadow var(--transition);
+            cursor: pointer;
+        }
+
+        .book-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .book-card__cover {
+            width: 100%;
+            height: 200px;
+            background: linear-gradient(135deg, #f8f0ea 0%, #e8ddd6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .book-card__cover img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .book-card__body {
+            padding: 16px;
+        }
+
+        .book-card__title {
+            font-size: 14px;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .book-card__author {
+            font-size: 12px;
+            color: var(--text-sec);
+            margin-bottom: 8px;
+        }
+
+        .book-card__meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 12px;
+        }
+
+        .book-card__copies {
+            color: var(--text-muted);
+        }
+
+        .book-card__copies strong {
+            color: var(--green);
+        }
+
+        .book-card__actions {
+            display: flex;
+            gap: 6px;
+            opacity: 0;
+            transition: opacity var(--transition);
+        }
+
+        .book-card:hover .book-card__actions {
+            opacity: 1;
+        }
+
+        .book-card__actions button {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            border: 1px solid var(--border);
+            background: #fff;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .book-card__actions .edit-btn:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+        }
+
+        .book-card__actions .del-btn:hover {
+            color: var(--red);
+            border-color: var(--red);
+        }
+
+        .book-isbn {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-header">
+        <h1>Books</h1>
+        <button class="btn btn-primary" id="add-book-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add Book
+        </button>
+    </div>
+
+    <div class="toolbar">
+        <div class="search-wrap">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input type="text" id="book-search" placeholder="Search by title, author, or ISBN…">
+        </div>
+        <select id="cat-filter" style="width:auto;min-width:140px;">
+            <option value="">All Categories</option>
+            <option value="Fiction">Fiction</option>
+            <option value="Science">Science</option>
+            <option value="Technology">Technology</option>
+            <option value="History">History</option>
+            <option value="Psychology">Psychology</option>
+            <option value="Sci-Fi">Sci-Fi</option>
+            <option value="General">General</option>
+        </select>
+    </div>
+
+    <div class="books-grid" id="books-grid">
+        <div class="loading-state" style="grid-column:1/-1">
+            <div class="spinner"></div> Loading books…
+        </div>
+    </div>
+
+    <div class="pagination" id="pagination"></div>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal-overlay" id="book-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title" id="modal-title">Add Book</h2>
+                <button class="modal-close"
+                    onclick="document.getElementById('book-modal').classList.remove('open')">✕</button>
+            </div>
+            <form id="book-form">
+                <input type="hidden" id="book-id">
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="f-isbn">ISBN</label><input id="f-isbn"
+                            placeholder="978-0-…"></div>
+                    <div class="form-group"><label class="form-label" for="f-category">Category</label>
+                        <select id="f-category">
+                            <option>General</option>
+                            <option>Fiction</option>
+                            <option>Science</option>
+                            <option>Technology</option>
+                            <option>History</option>
+                            <option>Psychology</option>
+                            <option>Sci-Fi</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group"><label class="form-label" for="f-title">Title *</label><input id="f-title"
+                        required></div>
+                <div class="form-group"><label class="form-label" for="f-author">Author *</label><input id="f-author"
+                        required></div>
+                <div class="form-group"><label class="form-label" for="f-cover">Cover URL</label><input id="f-cover"
+                        placeholder="https://…"></div>
+                <div class="form-row">
+                    <div class="form-group"><label class="form-label" for="f-total">Total Copies</label><input
+                            type="number" id="f-total" value="1" min="1"></div>
+                    <div class="form-group"><label class="form-label" for="f-avail">Available</label><input
+                            type="number" id="f-avail" value="1" min="0"></div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline"
+                        onclick="document.getElementById('book-modal').classList.remove('open')">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="save-btn">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirm Modal -->
+    <div class="modal-overlay" id="del-modal">
+        <div class="modal" style="max-width:400px;text-align:center;">
+            <h2 style="margin-bottom:12px;">Delete Book?</h2>
+            <p style="color:var(--text-sec);font-size:14px;margin-bottom:24px;">This action cannot be undone.</p>
+            <div class="form-actions" style="justify-content:center;">
+                <button class="btn btn-outline"
+                    onclick="document.getElementById('del-modal').classList.remove('open')">Cancel</button>
+                <button class="btn btn-danger" id="del-confirm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module">
+        import { api, showToast } from '/js/api.js';
+        import { initShell } from '/js/sidebar.js';
+        initShell('books');
+
+        let currentPage = 1;
+        let deleteId = null;
+
+        async function loadBooks() {
+            const q = document.getElementById('book-search').value;
+            const cat = document.getElementById('cat-filter').value;
+            try {
+                const res = await api.books({ q, category: cat, page: currentPage, limit: 20 });
+                renderGrid(res.books);
+                renderPagination(res.total, res.page, res.limit);
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        function renderGrid(books) {
+            const grid = document.getElementById('books-grid');
+            if (!books.length) {
+                grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1"><h3>No books found</h3><p>Add your first book to get started.</p></div>';
+                return;
+            }
+            grid.innerHTML = books.map(b => `
+        <div class="book-card" data-id="${b.id}">
+          <div class="book-card__cover">
+            ${b.cover_url ? `<img src="${b.cover_url}" alt="${b.title}" loading="lazy">` : `<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>`}
+          </div>
+          <div class="book-card__body">
+            <div class="book-card__title">${b.title}</div>
+            <div class="book-card__author">${b.author}</div>
+            ${b.isbn ? `<div class="book-isbn">${b.isbn}</div>` : ''}
+            <div class="book-card__meta">
+              <span class="badge badge-blue">${b.category}</span>
+              <div class="book-card__copies"><strong>${b.available_copies}</strong>/${b.total_copies}</div>
+            </div>
+            <div class="book-card__actions" style="margin-top:10px;">
+              <button class="edit-btn" onclick="event.stopPropagation(); window._editBook(${b.id})">Edit</button>
+              <button class="del-btn" onclick="event.stopPropagation(); window._deleteBook(${b.id})">Delete</button>
+            </div>
+          </div>
+        </div>`).join('');
+        }
+
+        function renderPagination(total, page, limit) {
+            const pages = Math.ceil(total / limit);
+            const el = document.getElementById('pagination');
+            if (pages <= 1) { el.innerHTML = ''; return; }
+            let html = '';
+            for (let i = 1; i <= pages; i++) {
+                html += `<button class="page-btn ${i === page ? 'active' : ''}" onclick="window._goPage(${i})">${i}</button>`;
+            }
+            el.innerHTML = html;
+        }
+
+        window._goPage = (p) => { currentPage = p; loadBooks(); };
+
+        // ── Add / Edit ────────────────────────────
+        document.getElementById('add-book-btn').addEventListener('click', () => {
+            document.getElementById('modal-title').textContent = 'Add Book';
+            document.getElementById('book-form').reset();
+            document.getElementById('book-id').value = '';
+            document.getElementById('book-modal').classList.add('open');
+        });
+
+        window._editBook = async (id) => {
+            try {
+                const b = await api.book(id);
+                document.getElementById('modal-title').textContent = 'Edit Book';
+                document.getElementById('book-id').value = id;
+                document.getElementById('f-isbn').value = b.isbn || '';
+                document.getElementById('f-title').value = b.title;
+                document.getElementById('f-author').value = b.author;
+                document.getElementById('f-category').value = b.category;
+                document.getElementById('f-cover').value = b.cover_url || '';
+                document.getElementById('f-total').value = b.total_copies;
+                document.getElementById('f-avail').value = b.available_copies;
+                document.getElementById('book-modal').classList.add('open');
+            } catch (e) { showToast(e.message, 'error'); }
+        };
+
+        document.getElementById('book-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('book-id').value;
+            const data = {
+                isbn: document.getElementById('f-isbn').value,
+                title: document.getElementById('f-title').value,
+                author: document.getElementById('f-author').value,
+                category: document.getElementById('f-category').value,
+                cover_url: document.getElementById('f-cover').value,
+                total_copies: parseInt(document.getElementById('f-total').value),
+                available_copies: parseInt(document.getElementById('f-avail').value),
+            };
+            try {
+                if (id) { await api.updateBook(id, data); showToast('Book updated'); }
+                else { await api.addBook(data); showToast('Book added'); }
+                document.getElementById('book-modal').classList.remove('open');
+                loadBooks();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        // ── Delete ────────────────────────────
+        window._deleteBook = (id) => {
+            deleteId = id;
+            document.getElementById('del-modal').classList.add('open');
+        };
+        document.getElementById('del-confirm').addEventListener('click', async () => {
+            try {
+                await api.deleteBook(deleteId);
+                showToast('Book deleted');
+                document.getElementById('del-modal').classList.remove('open');
+                loadBooks();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        // ── Search / Filter ────────────────────
+        let searchTimer;
+        document.getElementById('book-search').addEventListener('input', () => {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => { currentPage = 1; loadBooks(); }, 300);
+        });
+        document.getElementById('cat-filter').addEventListener('change', () => { currentPage = 1; loadBooks(); });
+
+        loadBooks();
+    </script>
+</body>
+
+</html>

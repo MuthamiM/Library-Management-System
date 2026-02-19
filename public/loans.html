@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EZRAlms — Library Loans</title>
+    <meta name="description" content="EZRAlms Library Loans – manage borrow and return operations">
+    <link rel="stylesheet" href="/css/global.css">
+    <style>
+        .tabs {
+            display: flex;
+            gap: 0;
+            margin-bottom: 20px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .tab {
+            padding: 10px 22px;
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-sec);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all var(--transition);
+            background: none;
+            border-top: none;
+            border-left: none;
+            border-right: none;
+        }
+
+        .tab:hover {
+            color: var(--text-pri);
+        }
+
+        .tab.active {
+            color: var(--accent);
+            border-bottom-color: var(--accent);
+        }
+
+        .tab .count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+            min-width: 22px;
+            height: 22px;
+            border-radius: 11px;
+            font-size: 11px;
+            font-weight: 700;
+            margin-left: 6px;
+            padding: 0 6px;
+        }
+
+        .tab.active .count {
+            background: var(--accent-dim);
+            color: var(--accent);
+        }
+
+        .loan-book-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .loan-book-cell img {
+            width: 32px;
+            height: 44px;
+            object-fit: cover;
+            border-radius: 4px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .return-btn {
+            padding: 5px 14px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            border: 1px solid var(--green);
+            color: var(--green);
+            background: #fff;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .return-btn:hover {
+            background: var(--green);
+            color: #fff;
+        }
+
+        .return-btn:disabled {
+            opacity: .4;
+            cursor: default;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page-header">
+        <h1>Library Loans</h1>
+        <button class="btn btn-primary" id="new-loan-btn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            New Loan
+        </button>
+    </div>
+
+    <div class="tabs" id="tabs">
+        <button class="tab active" data-status="">All <span class="count" id="cnt-all">—</span></button>
+        <button class="tab" data-status="active">Active <span class="count" id="cnt-active">—</span></button>
+        <button class="tab" data-status="overdue">Overdue <span class="count" id="cnt-overdue">—</span></button>
+        <button class="tab" data-status="returned">Returned <span class="count" id="cnt-returned">—</span></button>
+    </div>
+
+    <div class="card">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>Member</th>
+                        <th>Book</th>
+                        <th>Borrowed</th>
+                        <th>Due Date</th>
+                        <th>Status</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="loans-tbody">
+                    <tr>
+                        <td colspan="7" class="loading-state">
+                            <div class="spinner"></div> Loading…
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="pagination" id="pagination"></div>
+
+    <!-- New Loan Modal -->
+    <div class="modal-overlay" id="loan-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">New Loan</h2>
+                <button class="modal-close"
+                    onclick="document.getElementById('loan-modal').classList.remove('open')">✕</button>
+            </div>
+            <form id="loan-form">
+                <div class="form-group">
+                    <label class="form-label" for="f-member">Member</label>
+                    <select id="f-member" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="f-book">Book (Available)</label>
+                    <select id="f-book" required></select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="f-due">Due Date</label>
+                    <input type="date" id="f-due" required>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-outline"
+                        onclick="document.getElementById('loan-modal').classList.remove('open')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Loan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <script type="module">
+        import { api, showToast } from '/js/api.js';
+        import { initShell } from '/js/sidebar.js';
+        initShell('loans');
+
+        let currentPage = 1, currentStatus = '';
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('status')) {
+            currentStatus = urlParams.get('status');
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.status === currentStatus);
+            });
+        }
+
+        async function loadLoans() {
+            try {
+                const params = { page: currentPage, limit: 20 };
+                if (currentStatus) params.status = currentStatus;
+                const res = await api.loans(params);
+                renderTable(res.loans);
+                renderPagination(res.total, res.page, res.limit);
+                loadCounts();
+            } catch (e) { showToast(e.message, 'error'); }
+        }
+
+        async function loadCounts() {
+            try {
+                const [all, active, overdue, returned] = await Promise.all([
+                    api.loans({ limit: 1 }),
+                    api.loans({ status: 'active', limit: 1 }),
+                    api.loans({ status: 'overdue', limit: 1 }),
+                    api.loans({ status: 'returned', limit: 1 }),
+                ]);
+                document.getElementById('cnt-all').textContent = all.total;
+                document.getElementById('cnt-active').textContent = active.total;
+                document.getElementById('cnt-overdue').textContent = overdue.total;
+                document.getElementById('cnt-returned').textContent = returned.total;
+            } catch (_) { }
+        }
+
+        function renderTable(loans) {
+            const tbody = document.getElementById('loans-tbody');
+            if (!loans.length) {
+                tbody.innerHTML = '<tr><td colspan="7" class="empty-state"><h3>No loans found</h3></td></tr>';
+                return;
+            }
+            tbody.innerHTML = loans.map(l => {
+                const statusClass = l.status === 'overdue' ? 'badge-red' : l.status === 'active' ? 'badge-blue' : 'badge-green';
+                return `
+        <tr>
+          <td>${l.id}</td>
+          <td><strong>${l.member_name}</strong><br><span style="font-size:11px;color:var(--text-muted)">${l.member_code}</span></td>
+          <td>
+            <div class="loan-book-cell">
+              ${l.cover_url ? `<img src="${l.cover_url}" alt="">` : ''}
+              <div><div style="font-weight:600;font-size:13px;">${l.title}</div><div style="font-size:12px;color:var(--text-sec)">${l.author}</div></div>
+            </div>
+          </td>
+          <td>${fmtDate(l.borrowed_at)}</td>
+          <td>${fmtDate(l.due_date)}</td>
+          <td><span class="badge ${statusClass}">${l.status}</span></td>
+          <td>${l.status !== 'returned' ? `<button class="return-btn" data-id="${l.id}">Return</button>` : '<span style="color:var(--text-muted);font-size:12px">—</span>'}</td>
+        </tr>`;
+            }).join('');
+
+            tbody.querySelectorAll('.return-btn').forEach(btn => {
+                btn.addEventListener('click', async () => {
+                    btn.disabled = true; btn.textContent = '…';
+                    try {
+                        await api.returnBook(parseInt(btn.dataset.id));
+                        showToast('Book returned successfully');
+                        loadLoans();
+                    } catch (e) { showToast(e.message, 'error'); btn.disabled = false; btn.textContent = 'Return'; }
+                });
+            });
+        }
+
+        function fmtDate(d) {
+            if (!d) return '—';
+            return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+
+        function renderPagination(total, page, limit) {
+            const pages = Math.ceil(total / limit);
+            const el = document.getElementById('pagination');
+            if (pages <= 1) { el.innerHTML = ''; return; }
+            el.innerHTML = Array.from({ length: pages }, (_, i) =>
+                `<button class="page-btn ${i + 1 === page ? 'active' : ''}" onclick="window._goPage(${i + 1})">${i + 1}</button>`
+            ).join('');
+        }
+        window._goPage = (p) => { currentPage = p; loadLoans(); };
+
+        // ── Tabs ──────────────────────────────
+        document.getElementById('tabs').addEventListener('click', (e) => {
+            const tab = e.target.closest('.tab');
+            if (!tab) return;
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            tab.classList.add('active');
+            currentStatus = tab.dataset.status;
+            currentPage = 1;
+            loadLoans();
+        });
+
+        // ── New Loan Modal ────────────────────
+        document.getElementById('new-loan-btn').addEventListener('click', async () => {
+            // Set default due date to 14 days from now
+            const due = new Date(); due.setDate(due.getDate() + 14);
+            document.getElementById('f-due').value = due.toISOString().split('T')[0];
+
+            // Populate dropdowns
+            try {
+                const [mRes, bRes] = await Promise.all([api.members({ limit: 100 }), api.books({ limit: 100 })]);
+                const memberSel = document.getElementById('f-member');
+                memberSel.innerHTML = mRes.members.map(m => `<option value="${m.id}">${m.name} (${m.member_id})</option>`).join('');
+                const bookSel = document.getElementById('f-book');
+                bookSel.innerHTML = bRes.books.filter(b => b.available_copies > 0).map(b => `<option value="${b.id}">${b.title} (${b.available_copies} avail)</option>`).join('');
+                if (!bookSel.options.length) bookSel.innerHTML = '<option disabled>No books available</option>';
+                document.getElementById('loan-modal').classList.add('open');
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        document.getElementById('loan-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                member_id: parseInt(document.getElementById('f-member').value),
+                book_id: parseInt(document.getElementById('f-book').value),
+                due_date: document.getElementById('f-due').value,
+            };
+            try {
+                await api.borrow(data);
+                showToast('Loan created');
+                document.getElementById('loan-modal').classList.remove('open');
+                loadLoans();
+            } catch (e) { showToast(e.message, 'error'); }
+        });
+
+        loadLoans();
+    </script>
+</body>
+
+</html>
